@@ -21,7 +21,8 @@ class Dispatcher(Employee):
         legs = Relationship.objects.filter(senior_dispatcher=self).values_list('leg')
         legs = Dispatcher.objects.all().filter(pk__in=legs)
         self.gross = sum(
-            [driver.calc_gross for driver in Driver.objects.filter(monitor_dispatcher=self, gross__isnull=False)]) + \
+            [driver.calc_gross for driver in Driver.objects.filter(monitor_dispatcher=self,
+                                                                   gross__isnull=False)]) + \
                      sum([leg.calc_gross for leg in legs])
         self.save()
         return self.gross
@@ -50,12 +51,19 @@ class Dispatcher(Employee):
         self.save()
         return self.gross_percentage
 
-    # @property
-    # def calc_reward(self):
+    @property
+    def calc_reward(self):
+        self.reward = sum([driver.calc_reward_from_driver for driver in
+                           Driver.objects.filter(monitor_dispatcher=self, gross__isnull=False)] +
+                          [leg.calc_reward_from_leg for leg in Relationship.objects.filter(senior_dispatcher=self)])
+        self.save()
+        return self.reward
 
 
 class Driver(Employee):
-    monitor_dispatcher = models.ForeignKey(Dispatcher, null=True, on_delete=models.SET_NULL, related_name='monitor')
+    monitor_dispatcher = models.ForeignKey(Dispatcher, null=True,
+                                           on_delete=models.SET_NULL,
+                                           related_name='monitor')
     reward_percentage = models.FloatField(validators=[MinValueValidator(0.0),
                                                       MaxValueValidator(100)],
                                           null=True,
@@ -68,6 +76,10 @@ class Driver(Employee):
         except ZeroDivisionError:
             return 0
 
+    @property
+    def calc_reward_from_driver(self):
+        return self.gross * self.reward_percentage
+
 
 class Relationship(models.Model):
     senior_dispatcher = models.ForeignKey(Dispatcher, on_delete=models.CASCADE, related_name='senior')
@@ -76,3 +88,7 @@ class Relationship(models.Model):
                                                       MaxValueValidator(100)],
                                           null=True,
                                           default=0.0)
+
+    @property
+    def calc_reward_from_leg(self):
+        return self.leg.calc_gross * self.reward_percentage
