@@ -1,0 +1,14 @@
+### Django ###
+*.log
+*.pot
+*.pyc
+__pycache__/
+local_settings.py
+db.sqlite3
+media
+
+# Environments
+venv/
+venv.bak/
+
+# End of https://www.gitignore.io/api/django
