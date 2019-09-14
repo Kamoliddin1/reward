@@ -15,6 +15,10 @@ class Employee(models.Model):
 
 class Dispatcher(Employee):
     legs = models.ManyToManyField('self', through='Relationship', symmetrical=False)
+    legs_choice_for_90 = models.IntegerField(null=True)
+    legs_choice_for_80 = models.IntegerField(null=True)
+    legs_choice_for_70 = models.IntegerField(null=True)
+
 
     @property
     def calc_gross(self):
@@ -58,6 +62,30 @@ class Dispatcher(Employee):
                           [leg.calc_reward_from_leg for leg in Relationship.objects.filter(senior_dispatcher=self)])
         self.save()
         return self.reward
+
+    @property
+    def calc_reward_from_drivers(self):
+        self.drivers_reward = sum([driver.calc_gross_percentage for driver in
+                                   Driver.objects.filter(monitor_dispatcher=self, gross__isnull=False)])
+        return self.drivers_reward
+
+
+    @property
+    def calc_reward_from_legs(self):
+        leg_reward_list = [leg.calc_reward_from_leg for leg in Relationship.objects.filter(senior_dispatcher=self)]
+
+        if self.calc_sum_gross_percentage == 100:
+            return self.calc_reward
+        elif 90 <= self.calc_sum_gross_percentage <= 99:
+            return sum(leg_reward_list[:self.legs_choice_for_90])
+        elif 80 <= self.calc_sum_gross_percentage <= 89:
+            return sum(leg_reward_list[:self.legs_choice_for_80])
+        elif 70 <= self.calc_sum_gross_percentage <= 79:
+            return sum(leg_reward_list[:self.legs_choice_for_70])
+        elif 60 <= self.calc_sum_gross_percentage <= 69:
+            return self.calc_reward_from_drivers
+        else:
+            return None
 
 
 class Driver(Employee):

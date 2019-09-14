@@ -1,14 +1,28 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
-from django.http import HttpResponse, JsonResponse
-from django.shortcuts import render
-
-# Create your views here.
-from users.models import Dispatcher
+from rest_framework import viewsets, permissions
+from django.contrib.auth.models import User
+from users.models import Dispatcher, Driver, Relationship
+from users.serializers import UserSerializer, DispatcherSerializer, DriverSerializer, RelationshipSerializer
 
 
-def calc_gross_of_first_dispatchers(request):
-    dispatcher = Dispatcher.objects.first()
-    gross = dispatcher.calc_gross
-    return JsonResponse({'gross': gross})
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+
+class DispatcherViewSet(viewsets.ModelViewSet):
+    queryset = Dispatcher.objects.all()
+    serializer_class = DispatcherSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+
+class DriverViewSet(viewsets.ModelViewSet):
+    queryset = Driver.objects.all()
+    serializer_class = DriverSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+
+class RelationshipViewSet(viewsets.ModelViewSet):
+    queryset = Relationship.objects.all()
+    serializer_class = RelationshipSerializer
+    permission_classes = [permissions.IsAdminUser]
