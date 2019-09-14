@@ -10,7 +10,7 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class DispatcherSerializer(serializers.HyperlinkedModelSerializer):
-    user = UserSerializer(many=False)
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
 
     class Meta:
         model = Dispatcher
@@ -27,7 +27,7 @@ class DispatcherSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class DriverSerializer(serializers.HyperlinkedModelSerializer):
-    user = UserSerializer(many=False)
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
 
     class Meta:
         model = Driver
@@ -41,6 +41,9 @@ class DriverSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class RelationshipSerializer(serializers.HyperlinkedModelSerializer):
+    senior_dispatcher = serializers.PrimaryKeyRelatedField(queryset=Dispatcher.objects.all())
+    leg = serializers.PrimaryKeyRelatedField(queryset=Dispatcher.objects.all())
+
     class Meta:
         model = Relationship
         fields = ['url',

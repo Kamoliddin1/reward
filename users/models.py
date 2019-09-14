@@ -5,8 +5,8 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 
 class Employee(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    gross = models.IntegerField(null=True)
-    plan_gross = models.IntegerField(null=True)
+    gross = models.IntegerField(default=0)
+    plan_gross = models.IntegerField(default=0)
 
     @property
     def calc_gross(self):
@@ -15,9 +15,9 @@ class Employee(models.Model):
 
 class Dispatcher(Employee):
     legs = models.ManyToManyField('self', through='Relationship', symmetrical=False)
-    legs_choice_for_90 = models.IntegerField(null=True)
-    legs_choice_for_80 = models.IntegerField(null=True)
-    legs_choice_for_70 = models.IntegerField(null=True)
+    legs_choice_for_90 = models.IntegerField(null=True, default=0)
+    legs_choice_for_80 = models.IntegerField(null=True, default=0)
+    legs_choice_for_70 = models.IntegerField(null=True, default=0)
 
 
     @property
@@ -51,7 +51,10 @@ class Dispatcher(Employee):
         self.gross_list = [driver.calc_gross_percentage for driver in
                            Driver.objects.filter(monitor_dispatcher=self, gross__isnull=False)] + \
                           [leg.calc_drivers_gross_percentage for leg in legs]
-        self.gross_percentage = sum(self.gross_list) / len(self.gross_list)
+        try:
+            self.gross_percentage = sum(self.gross_list) / len(self.gross_list)
+        except ZeroDivisionError:
+            return 0
         self.save()
         return self.gross_percentage
 
