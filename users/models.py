@@ -21,15 +21,15 @@ class Dispatcher(Employee):
 
 
     @property
-    def calc_gross(self):
+    def calc_sum_gross(self):
         legs = Relationship.objects.filter(senior_dispatcher=self).values_list('leg')
         legs = Dispatcher.objects.all().filter(pk__in=legs)
-        self.gross = sum(
+        self.sum_gross = sum(
             [driver.calc_gross for driver in Driver.objects.filter(monitor_dispatcher=self,
-                                                                   gross__isnull=False)]) + \
-                     sum([leg.calc_gross for leg in legs])
+                                                                   gross__isnull=False)]) +\
+                         sum([leg.calc_gross for leg in legs])
         self.save()
-        return self.gross
+        return self.sum_gross
 
     @property
     def calc_drivers_gross_percentage(self):

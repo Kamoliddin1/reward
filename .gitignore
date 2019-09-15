@@ -10,5 +10,7 @@ media
 # Environments
 venv/
 venv.bak/
+env/
+env.bak/
 
 # End of https://www.gitignore.io/api/django
