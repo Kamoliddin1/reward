@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
+from rest_framework.exceptions import ValidationError
+
 from users.models import Dispatcher, Driver, Relationship
 
 
@@ -51,3 +53,8 @@ class RelationshipSerializer(serializers.HyperlinkedModelSerializer):
                   'leg',
                   'reward_percentage',
                   'calc_reward_from_leg']
+
+    def validate(self, attrs):
+        if attrs.get('senior_dispatcher') == attrs.get('leg'):
+            raise ValidationError(detail='Cannot create relationship with self')
+        return super().validate(attrs)

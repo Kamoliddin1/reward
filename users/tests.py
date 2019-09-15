@@ -69,12 +69,20 @@ class CreationTests(APITestCase):
         response = self.client.post(self.drivers_url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-    def test_create_leg(self):
+    def test_create_relationship(self):
         self.client = authenticate()
         senior = Dispatcher.objects.get(user=User.objects.get(username='admin')).id
         leg = Dispatcher.objects.get(user=User.objects.get(username='dispatcher3')).id
         data = {'senior_dispatcher': senior, 'leg': leg}
         response = self.client.post(self.relationships_url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_create_relationship_with_self(self):
+        self.client = authenticate()
+        senior = Dispatcher.objects.get(user=User.objects.get(username='admin')).id
+        leg = Dispatcher.objects.get(user=User.objects.get(username='admin')).id
+        data = {'senior_dispatcher': senior, 'leg': leg}
+        response = self.client.post(self.relationships_url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
