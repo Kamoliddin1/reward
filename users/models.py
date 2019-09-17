@@ -75,17 +75,14 @@ class Dispatcher(Employee):
 
     @property
     def calc_sum_reward(self):
-        self.reward = sum([driver.calc_reward_from_driver for driver in
-                           Driver.objects.filter(monitor_dispatcher=self, gross__isnull=False)] +
-                          [leg.calc_reward_from_leg for leg in Relationship.objects.filter(senior_dispatcher=self)])
-        self.save()
-        return self.reward
+        return ([driver.calc_reward_from_driver for driver in
+                 Driver.objects.filter(monitor_dispatcher=self, gross__isnull=False)] +
+                [leg.calc_reward_from_leg for leg in Relationship.objects.filter(senior_dispatcher=self)])
 
     @property
     def calc_reward_from_drivers(self):
-        drivers_reward = sum([driver.calc_gross_percentage for driver in
-                              Driver.objects.filter(monitor_dispatcher=self, gross__isnull=False)])
-        return drivers_reward
+        return sum([driver.calc_gross_percentage for driver in
+                    Driver.objects.filter(monitor_dispatcher=self, gross__isnull=False)])
 
     @property
     def calc_reward_from_legs(self):
@@ -117,6 +114,7 @@ class Driver(Employee):
         try:
             self.gross_percentage = self.gross / self.plan_gross * 100
             self.save(update_fields=['gross_percentage'])
+            return self.gross_percentage
         except ZeroDivisionError:
             return 0
 
