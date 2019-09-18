@@ -11,6 +11,13 @@ class Employee(models.Model):
     plan_gross = models.IntegerField(default=0)
     gross_percentage = models.FloatField(default=0.0)
 
+    def calc_gross_percentage(self):
+        try:
+            self.gross_percentage = self.gross / self.plan_gross * 100
+            self.save(update_fields=['gross_percentage'])
+        except ZeroDivisionError:
+            return 0
+
 
 class Dispatcher(Employee):
     legs = models.ManyToManyField('self', through='Relationship', symmetrical=False)
@@ -66,13 +73,6 @@ class Dispatcher(Employee):
         self.save(update_fields=['gross'])
         return self.gross
 
-    def calc_gross_percentage(self):
-        try:
-            self.gross_percentage = self.gross / self.plan_gross * 100
-            self.save(update_fields=['gross_percentage'])
-        except ZeroDivisionError:
-            return 0
-
     @property
     def calc_sum_reward(self):
         return ([driver.calc_reward_from_driver for driver in
@@ -109,14 +109,6 @@ class Driver(Employee):
                                                       MaxValueValidator(100)],
                                           null=True,
                                           default=0.0)
-
-    def calc_gross_percentage(self):
-        try:
-            self.gross_percentage = self.gross / self.plan_gross * 100
-            self.save(update_fields=['gross_percentage'])
-            return self.gross_percentage
-        except ZeroDivisionError:
-            return 0
 
     @property
     def calc_reward_from_driver(self):
