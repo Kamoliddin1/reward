@@ -18,6 +18,9 @@ class Employee(models.Model):
         except ZeroDivisionError:
             return 0
 
+    class Meta:
+        abstract = True
+
 
 class Dispatcher(Employee):
     legs = models.ManyToManyField('self', through='Relationship', symmetrical=False)
