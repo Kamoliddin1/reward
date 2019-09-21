@@ -1,22 +1,15 @@
+from django.apps import apps
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MaxValueValidator, MinValueValidator
-from django.db.models import Sum
-from django.db.utils import IntegrityError
+from django.db.models.aggregates import Sum
+from django.db.models.functions import Coalesce
+
+from users.querysets import DispatcherQueryset
 
 
 class Employee(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    gross = models.IntegerField(default=0)
-    plan_gross = models.IntegerField(default=0)
-    gross_percentage = models.FloatField(default=0.0)
-
-    def calc_gross_percentage(self):
-        try:
-            self.gross_percentage = self.gross / self.plan_gross * 100
-            self.save(update_fields=['gross_percentage'])
-        except ZeroDivisionError:
-            return 0
 
     class Meta:
         abstract = True
@@ -24,75 +17,98 @@ class Employee(models.Model):
 
 class Dispatcher(Employee):
     legs = models.ManyToManyField('self', through='Relationship', symmetrical=False)
-    drivers_gross = models.IntegerField(default=0)
-    legs_gross = models.IntegerField(default=0)
     legs_choice_for_90 = models.IntegerField(default=0)
     legs_choice_for_80 = models.IntegerField(default=0)
     legs_choice_for_70 = models.IntegerField(default=0)
+    reward_percentage_for_drivers = models.FloatField(validators=[MinValueValidator(0.0),
+                                                                  MaxValueValidator(1.0)],
+                                                      null=True,
+                                                      default=0.0)
+    reward_percentage_for_legs = models.FloatField(validators=[MinValueValidator(0.0),
+                                                               MaxValueValidator(1.0)],
+                                                   null=True,
+                                                   default=0.0)
 
-    def calc_plan_gross(self):
-        try:
-            self.plan_gross = sum([Driver.objects.filter(
-                monitor_dispatcher=self, plan_gross__isnull=False).aggregate(
-                Sum('plan_gross'))['plan_gross__sum'],
-                                   Relationship.objects.filter(
-                                       senior_dispatcher=self).aggregate(
-                                       Sum('leg__driver__plan_gross'))['leg__driver__plan_gross__sum']])
-            self.save(update_fields=['plan_gross'])
-            return self.plan_gross
-        except IntegrityError:
-            self.plan_gross = 0
-            self.save(update_fields=['plan_gross'])
-            return self.plan_gross
+    objects = DispatcherQueryset.as_manager()
 
-    def calc_drivers_gross(self):
-        try:
-            self.drivers_gross = Driver.objects.filter(
-                monitor_dispatcher=self, gross__isnull=False).aggregate(
-                Sum('gross'))['gross__sum']
-            self.save(update_fields=['drivers_gross'])
-            return self.drivers_gross
-        except IntegrityError:
-            self.drivers_gross = 0
-            self.save(update_fields=['drivers_gross'])
-            return self.drivers_gross
+    def get_driver_model(self):
+        return apps.get_model('users', 'Driver')
 
-    def calc_legs_gross(self):
-        try:
-            self.legs_gross = Relationship.objects.filter(
-                senior_dispatcher=self).aggregate(
-                Sum('leg__drivers_gross'))['leg__drivers_gross__sum']
-            self.save(update_fields=['legs_gross'])
-            return self.legs_gross
-        except IntegrityError:
-            self.legs_gross = 0
-            self.save(update_fields=['drivers_gross'])
-            return self.legs_gross
-
-    def calc_gross(self):
-        self.gross = Dispatcher.objects.filter(
-            pk=self.pk).aggregate(
-            gross_sum=Sum('drivers_gross') + Sum('legs_gross'))['gross_sum']
-        self.save(update_fields=['gross'])
-        return self.gross
+    def get_relationship_model(self):
+        return apps.get_model('users', 'Relationship')
 
     @property
-    def calc_sum_reward(self):
-        return ([driver.calc_reward_from_driver for driver in
-                 Driver.objects.filter(monitor_dispatcher=self, gross__isnull=False)] +
-                [leg.calc_reward_from_leg for leg in Relationship.objects.filter(senior_dispatcher=self)])
+    def drivers_plan_gross(self):
+        plan = Dispatcher.objects. \
+            add_drivers_plan_gross(). \
+            get(pk=self.pk).driver_plan_gross
+        if plan is None:
+            return 0.0
+        else:
+            return plan
 
     @property
-    def calc_reward_from_drivers(self):
-        return sum([driver.calc_gross_percentage for driver in
-                    Driver.objects.filter(monitor_dispatcher=self, gross__isnull=False)])
+    def legs_plan_gross(self):
+        return Dispatcher.objects. \
+            filter(pk__in=self.get_relationship_model(). \
+                   objects.filter(senior_dispatcher=self). \
+                   values_list('leg', flat=True)). \
+            add_drivers_plan_gross(). \
+            aggregate(legs_driver_plan_gross_sum=Coalesce(Sum('driver_plan_gross'), 0))['legs_driver_plan_gross_sum']
 
     @property
-    def calc_reward_from_legs(self):
+    def plan_gross(self):
+        return self.drivers_plan_gross + self.legs_plan_gross
+
+    @property
+    def drivers_gross(self):
+        gross = Dispatcher.objects. \
+            add_drivers_gross(). \
+            get(pk=self.pk). \
+            driver_gross
+        if gross is None:
+            return 0
+        else:
+            return gross
+
+    @property
+    def legs_gross(self):
+        return Dispatcher.objects. \
+            filter(pk__in=self.get_relationship_model(). \
+                   objects.filter(senior_dispatcher=self). \
+                   values_list('leg', flat=True)). \
+            add_drivers_gross(). \
+            aggregate(legs_driver_gross_sum=Coalesce(Sum('driver_gross'), 0))['legs_driver_gross_sum']
+
+    @property
+    def gross(self):
+        return self.drivers_gross + self.legs_gross
+
+    @property
+    def gross_percentage(self):
+        try:
+            return self.gross / self.plan_gross * 100
+        except ZeroDivisionError:
+            return 0
+
+    @property
+    def reward_from_drivers(self):
+        return self.drivers_gross * self.reward_percentage_for_drivers
+
+    @property
+    def reward_from_legs(self):
+        return self.legs_gross * self.reward_percentage_for_legs
+
+    @property
+    def sum_reward(self):
+        return self.reward_from_legs * self.reward_from_drivers
+
+    @property
+    def reward(self):
         leg_reward_list = [leg.calc_reward_from_leg for leg in Relationship.objects.filter(senior_dispatcher=self)]
 
         if self.gross_percentage == 100:
-            return self.calc_sum_reward
+            return self.sum_reward
         elif 90 <= self.gross_percentage <= 99:
             return sum(leg_reward_list[:self.legs_choice_for_90])
         elif 80 <= self.gross_percentage <= 89:
@@ -100,32 +116,18 @@ class Dispatcher(Employee):
         elif 70 <= self.gross_percentage <= 79:
             return sum(leg_reward_list[:self.legs_choice_for_70])
         elif 60 <= self.gross_percentage <= 69:
-            return self.calc_reward_from_drivers
+            return self.reward_from_drivers
         else:
             return 0
 
 
 class Driver(Employee):
+    gross = models.FloatField(default=0.0)
+    plan_gross = models.FloatField(default=0.0)
     monitor_dispatcher = models.ForeignKey(Dispatcher, null=True,
-                                           on_delete=models.SET_NULL)
-    reward_percentage = models.FloatField(validators=[MinValueValidator(0.0),
-                                                      MaxValueValidator(100)],
-                                          null=True,
-                                          default=0.0)
-
-    @property
-    def calc_reward_from_driver(self):
-        return self.gross * self.reward_percentage
+                                           on_delete=models.PROTECT)
 
 
 class Relationship(models.Model):
     senior_dispatcher = models.ForeignKey(Dispatcher, on_delete=models.CASCADE, related_name='senior')
     leg = models.ForeignKey(Dispatcher, on_delete=models.CASCADE, related_name='leg')
-    reward_percentage = models.FloatField(validators=[MinValueValidator(0.0),
-                                                      MaxValueValidator(1.0)],
-                                          null=True,
-                                          default=0.0)
-
-    @property
-    def calc_reward_from_leg(self):
-        return self.leg.calc_gross * self.reward_percentage

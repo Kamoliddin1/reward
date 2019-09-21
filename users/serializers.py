@@ -21,11 +21,12 @@ class DispatcherSerializer(serializers.HyperlinkedModelSerializer):
                   'legs_choice_for_90',
                   'legs_choice_for_80',
                   'legs_choice_for_70',
-                  'calc_gross',
-                  'calc_drivers_gross_percentage',
-                  'calc_sum_gross_percentage',
-                  'calc_reward_from_drivers',
-                  'calc_reward_from_legs']
+                  'gross',
+                  'drivers_gross',
+                  'legs_gross',
+                  'plan_gross',
+                  'gross_percentage',
+                  'reward']
 
 
 class DriverSerializer(serializers.HyperlinkedModelSerializer):
@@ -36,10 +37,7 @@ class DriverSerializer(serializers.HyperlinkedModelSerializer):
         fields = ['user',
                   'monitor_dispatcher',
                   'gross',
-                  'plan_gross',
-                  'reward_percentage',
-                  'calc_gross_percentage',
-                  'calc_reward_from_driver']
+                  'plan_gross']
 
 
 class RelationshipSerializer(serializers.HyperlinkedModelSerializer):
@@ -50,9 +48,7 @@ class RelationshipSerializer(serializers.HyperlinkedModelSerializer):
         model = Relationship
         fields = ['url',
                   'senior_dispatcher',
-                  'leg',
-                  'reward_percentage',
-                  'calc_reward_from_leg']
+                  'leg']
 
     def validate(self, attrs):
         if attrs.get('senior_dispatcher') == attrs.get('leg'):

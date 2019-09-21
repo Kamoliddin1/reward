@@ -20,10 +20,9 @@ def authenticate():
 
 
 class TestEndpoints(APITestCase):
-    fixtures = ['users',
-                'employees',
-                'dispatchers',
-                'drivers',
+    fixtures = ['user',
+                'dispatcher',
+                'driver',
                 'relationship']
     dispatcher_url = '/dispatchers/'
     drivers_url = '/drivers/'
@@ -46,10 +45,9 @@ class TestEndpoints(APITestCase):
 
 
 class CreationTests(APITestCase):
-    fixtures = ['users',
-                'employees',
-                'dispatchers',
-                'drivers',
+    fixtures = ['user',
+                'dispatcher',
+                'driver',
                 'relationship']
     dispatcher_url = '/dispatchers/'
     drivers_url = '/drivers/'
@@ -57,14 +55,14 @@ class CreationTests(APITestCase):
 
     def test_create_dispatcher(self):
         self.client = authenticate()
-        user = User.objects.get(username='user').id
+        user = User.objects.get(username='leg6').id
         data = {'user': user}
         response = self.client.post(self.dispatcher_url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_create_driver(self):
         self.client = authenticate()
-        user = User.objects.get(username='user').id
+        user = User.objects.get(username='leg6').id
         data = {'user': user}
         response = self.client.post(self.drivers_url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -72,7 +70,7 @@ class CreationTests(APITestCase):
     def test_create_relationship(self):
         self.client = authenticate()
         senior = Dispatcher.objects.get(user=User.objects.get(username='admin')).id
-        leg = Dispatcher.objects.get(user=User.objects.get(username='dispatcher3')).id
+        leg = Dispatcher.objects.get(user=User.objects.get(username='leg4')).id
         data = {'senior_dispatcher': senior, 'leg': leg}
         response = self.client.post(self.relationships_url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
