@@ -91,7 +91,6 @@ class Dispatcher(Employee):
     def reward_from_drivers(self):
         return self.drivers_gross * self.reward_percentage_for_drivers
 
-
     @property
     def reward(self):
         leg_reward_list = [leg.reward for leg in Relationship.objects.filter(senior_dispatcher=self)]
@@ -121,11 +120,10 @@ class Relationship(models.Model):
     senior_dispatcher = models.ForeignKey(Dispatcher, on_delete=models.CASCADE, related_name='senior')
     leg = models.ForeignKey(Dispatcher, on_delete=models.CASCADE, related_name='leg')
     reward_percentage = models.FloatField(validators=[MinValueValidator(0.0),
-                                                               MaxValueValidator(1.0)],
-                                                   null=True,
-                                                   default=0.0)
+                                                      MaxValueValidator(1.0)],
+                                          null=True,
+                                          default=0.0)
     objects = DispatcherQueryset.as_manager()
-
 
     @property
     def leg_drivers_gross(self):

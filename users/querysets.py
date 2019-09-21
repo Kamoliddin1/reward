@@ -7,6 +7,7 @@ class SumSubquery(Subquery):
     template = '(SELECT SUM(dgs.plan_gross) FROM (%(subquery)s) as dgs)'
     output_field = FloatField()
 
+
 class GrossSumSubquery(Subquery):
     template = '(SELECT SUM(dgs.gross) FROM (%(subquery)s) as dgs)'
     output_field = FloatField()
@@ -22,7 +23,6 @@ class DispatcherQueryset(models.QuerySet):
             )
         )
 
-
     def add_drivers_gross(self):
         from users.models import Driver
         return self.annotate(
@@ -31,5 +31,3 @@ class DispatcherQueryset(models.QuerySet):
                 output_field=FloatField()
             )
         )
-
-

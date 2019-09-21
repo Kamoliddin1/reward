@@ -15,13 +15,6 @@ class DispatcherViewSet(viewsets.ModelViewSet):
     serializer_class = DispatcherSerializer
     permission_classes = [permissions.IsAdminUser]
 
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        queryset = queryset.add_drivers_plan_gross()
-        queryset = queryset.add_drivers_gross()
-        return queryset
-
-
 
 class DriverViewSet(viewsets.ModelViewSet):
     queryset = Driver.objects.all()
@@ -33,5 +26,3 @@ class RelationshipViewSet(viewsets.ModelViewSet):
     queryset = Relationship.objects.all()
     serializer_class = RelationshipSerializer
     permission_classes = [permissions.IsAdminUser]
-
-
