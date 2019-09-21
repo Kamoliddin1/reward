@@ -24,10 +24,6 @@ class Dispatcher(Employee):
                                                                   MaxValueValidator(1.0)],
                                                       null=True,
                                                       default=0.0)
-    reward_percentage_for_legs = models.FloatField(validators=[MinValueValidator(0.0),
-                                                               MaxValueValidator(1.0)],
-                                                   null=True,
-                                                   default=0.0)
 
     objects = DispatcherQueryset.as_manager()
 
@@ -95,26 +91,19 @@ class Dispatcher(Employee):
     def reward_from_drivers(self):
         return self.drivers_gross * self.reward_percentage_for_drivers
 
-    @property
-    def reward_from_legs(self):
-        return self.legs_gross * self.reward_percentage_for_legs
-
-    @property
-    def sum_reward(self):
-        return self.reward_from_legs * self.reward_from_drivers
 
     @property
     def reward(self):
-        leg_reward_list = [leg.calc_reward_from_leg for leg in Relationship.objects.filter(senior_dispatcher=self)]
+        leg_reward_list = [leg.reward for leg in Relationship.objects.filter(senior_dispatcher=self)]
 
         if self.gross_percentage == 100:
-            return self.sum_reward
+            return sum(leg_reward_list) + self.drivers_gross
         elif 90 <= self.gross_percentage <= 99:
-            return sum(leg_reward_list[:self.legs_choice_for_90])
+            return sum(leg_reward_list[:self.legs_choice_for_90]) + self.drivers_gross
         elif 80 <= self.gross_percentage <= 89:
-            return sum(leg_reward_list[:self.legs_choice_for_80])
+            return sum(leg_reward_list[:self.legs_choice_for_80]) + self.drivers_gross
         elif 70 <= self.gross_percentage <= 79:
-            return sum(leg_reward_list[:self.legs_choice_for_70])
+            return sum(leg_reward_list[:self.legs_choice_for_70]) + self.drivers_gross
         elif 60 <= self.gross_percentage <= 69:
             return self.reward_from_drivers
         else:
@@ -131,3 +120,24 @@ class Driver(Employee):
 class Relationship(models.Model):
     senior_dispatcher = models.ForeignKey(Dispatcher, on_delete=models.CASCADE, related_name='senior')
     leg = models.ForeignKey(Dispatcher, on_delete=models.CASCADE, related_name='leg')
+    reward_percentage = models.FloatField(validators=[MinValueValidator(0.0),
+                                                               MaxValueValidator(1.0)],
+                                                   null=True,
+                                                   default=0.0)
+    objects = DispatcherQueryset.as_manager()
+
+
+    @property
+    def leg_drivers_gross(self):
+        gross = Relationship.objects. \
+            add_drivers_gross(). \
+            get(pk=self.leg_id). \
+            driver_gross
+        if gross is None:
+            return 0
+        else:
+            return gross
+
+    @property
+    def reward(self):
+        return self.leg_drivers_gross * self.reward_percentage

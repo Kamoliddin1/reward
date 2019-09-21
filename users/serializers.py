@@ -48,7 +48,8 @@ class RelationshipSerializer(serializers.HyperlinkedModelSerializer):
         model = Relationship
         fields = ['url',
                   'senior_dispatcher',
-                  'leg']
+                  'leg',
+                  'reward']
 
     def validate(self, attrs):
         if attrs.get('senior_dispatcher') == attrs.get('leg'):

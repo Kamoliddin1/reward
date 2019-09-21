@@ -31,3 +31,5 @@ class DispatcherQueryset(models.QuerySet):
                 output_field=FloatField()
             )
         )
+
+
